@@ -81,6 +81,9 @@ export class IngestionService {
     await this.messagingService.publishProcessingMessage(
       savedReport._id.toString(),
       s3Key,
+      dto.tenant,
+      dto.project,
+      dto.subcontractor,
     );
 
     // 5. Return created document

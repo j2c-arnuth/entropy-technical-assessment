@@ -190,3 +190,52 @@ the client. Appropriate for the file sizes expected in daily report PDFs.
 
 **Production consideration:** For large files, consider presigned URLs for direct
 S3 upload from the client, followed by async metadata capture triggered by S3 events.
+
+### Messaging Module
+
+#### Queue Validation on Startup
+
+**Decision:** Validate queue existence during module initialization (fail-fast).
+
+**Justification:**
+- Catches configuration errors early before processing requests
+- Prevents silent failures during runtime
+- Provides clear error messages for debugging infrastructure issues
+
+**Production consideration:** Add health check endpoint that includes queue
+connectivity status for monitoring and load balancer health probes.
+
+#### Rich Message Payload
+
+**Decision:** Message body includes reportId, s3Key, tenant, project, subcontractor,
+and publishedAt timestamp.
+
+**Justification:**
+- Supports pipeline observability by providing full context at each processing
+  stage, enabling latency tracking and debugging across the async workflow
+- Reduces operational coupling: the extraction worker has all context needed to
+  execute without querying the database at runtime, following control/application
+  plane separation principles
+
+**Production considerations:**
+- Consider message schema versioning (e.g., include a `version` field) for backward
+  compatibility during payload evolution
+- If product tiering requires differentiated processing (e.g., dedicated workers for
+  enterprise tenants), implement routing at the control plane level—the ingestion
+  service or a message router should direct messages to tier-specific queues. Workers
+  should remain policy-agnostic executors that process their assigned queue without
+  making decisions based on tenant attributes.
+
+#### No Application-Level Retry Logic
+
+**Decision:** Rely on SQS built-in retry and dead-letter queue (DLQ) configuration
+rather than implementing retry logic in the service.
+
+**Justification:**
+- SQS provides robust, configurable retry mechanisms
+- Keeps service code simple and focused on business logic
+- DLQ handling separates concerns and enables dedicated failure handling
+
+**Production consideration:** Configure DLQ with appropriate maxReceiveCount,
+set up CloudWatch alarms for DLQ message counts, and implement a DLQ processor
+for handling or replaying failed messages.

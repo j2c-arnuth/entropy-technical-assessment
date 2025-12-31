@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { MessagingService } from './messaging.service';
 
 /**
  * Module for SQS messaging operations.
  *
  * @remarks
- * Currently provides a stub MessagingService. Full implementation will
- * include SQS client configuration and queue management.
+ * Provides MessagingService for publishing messages to SQS queue.
+ * Validates queue connectivity on module initialization (fail-fast).
  */
 @Module({
+  imports: [ConfigModule],
   providers: [MessagingService],
   exports: [MessagingService],
 })

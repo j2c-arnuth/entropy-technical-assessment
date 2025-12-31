@@ -51,3 +51,8 @@ src/
 test/
 └── *.e2e-spec.ts       # E2E tests
 ```
+
+## Implementation
+
+See [daily-report-service/README.md](daily-report-service/README.md) for setup
+instructions, design decisions, and documentation.

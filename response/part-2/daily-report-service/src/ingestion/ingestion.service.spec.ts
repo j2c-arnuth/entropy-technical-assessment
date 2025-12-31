@@ -123,6 +123,9 @@ describe('IngestionService', () => {
       expect(messagingService.publishProcessingMessage).toHaveBeenCalledWith(
         'report-id-123',
         mockS3Key,
+        'tenant-1',
+        'project-1',
+        'subcontractor-1',
       );
     });
 
