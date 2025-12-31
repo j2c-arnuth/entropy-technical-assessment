@@ -149,12 +149,16 @@ export class DailyReport {
   fileSize: number;
 
   /** Current processing status */
-  @Prop({ required: true, enum: ReportStatus, default: ReportStatus.PENDING })
+  @Prop({ required: true, type: String, enum: ReportStatus, default: ReportStatus.PENDING })
   status: ReportStatus;
 
   /** Extracted structured data (populated after extraction) */
   @Prop({ type: Object })
   extractedData?: ExtractedData;
+
+  /** Timestamp fields (auto-managed by Mongoose with timestamps: true) */
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const DailyReportSchema = SchemaFactory.createForClass(DailyReport);

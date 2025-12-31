@@ -67,6 +67,38 @@ test/
 └── *.e2e-spec.ts       # E2E tests
 ```
 
+## Processing Pipeline
+
+The service processes daily reports through an asynchronous pipeline. This interpretation
+aligns with the requirement to "publish an SQS message for processing" - the message
+triggers extraction as a separate step from ingestion.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              INGESTION                                      │
+│                                                                             │
+│   Client ──► POST /reports/upload ──► S3 Storage ──► MongoDB ──► SQS        │
+│              (PDF + metadata)         (raw file)     (PENDING)   (trigger)  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                                           │
+                                                           ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              EXTRACTION                                     │
+│                                                                             │
+│   SQS Consumer ──► Download PDF ──► Parse & Extract ──► MongoDB             │
+│   (poll queue)     (from S3)        (pdf-parse + LLM)   (COMPLETED/FAILED)  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Status Transitions:**
+
+| Status | Description |
+|--------|-------------|
+| PENDING | Report uploaded, awaiting extraction |
+| PROCESSING | Extraction in progress |
+| COMPLETED | Extraction successful, data available |
+| FAILED | Extraction failed (see error details) |
+
 ## Design Decisions
 
 ### Minimal Viable Implementation
@@ -112,3 +144,49 @@ Extracted data is embedded as a subdocument rather than a separate collection be
 
 For production, consider separating if independent querying of extracted data
 across reports is required.
+
+### Ingestion Module
+
+#### Direct SQS Message Publishing
+
+**Decision:** Ingestion module calls messaging service directly after successful upload.
+
+**Justification:** Simpler flow with fewer round-trips. Provides an atomic operation
+from the client's perspective - upload either succeeds completely (file stored,
+metadata saved, message queued) or fails.
+
+**Production consideration:** Consider event-driven architecture with database change
+streams or outbox pattern for guaranteed delivery and better decoupling.
+
+#### S3 Key Generation Strategy
+
+**Decision:** Use `{date}/{uuid}/{original-filename}` pattern.
+
+**Justification:**
+- Date prefix enables time-based partitioning and lifecycle policies
+- UUID ensures uniqueness and prevents key collisions
+- Original filename preserved for human readability and debugging
+
+**Production consideration:** Add tenant/project prefixes for multi-tenant isolation
+(e.g., `{tenant}/{project}/{date}/{uuid}/{filename}`) and configure bucket policies.
+
+#### No Bucket Auto-Creation
+
+**Decision:** Assume S3 bucket exists (created via infrastructure setup).
+
+**Justification:** Separation of concerns - infrastructure provisioning is distinct
+from application logic. The application should not manage its own infrastructure.
+
+**Production consideration:** Use Infrastructure as Code (Terraform, CloudFormation)
+for bucket provisioning with proper encryption, versioning, and access policies.
+
+#### Synchronous Upload Flow
+
+**Decision:** Upload to S3, save to MongoDB, and publish SQS message in a single
+synchronous request.
+
+**Justification:** Simple request-response model provides immediate feedback to
+the client. Appropriate for the file sizes expected in daily report PDFs.
+
+**Production consideration:** For large files, consider presigned URLs for direct
+S3 upload from the client, followed by async metadata capture triggered by S3 events.
