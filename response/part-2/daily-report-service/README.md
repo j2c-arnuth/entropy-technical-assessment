@@ -239,3 +239,80 @@ rather than implementing retry logic in the service.
 **Production consideration:** Configure DLQ with appropriate maxReceiveCount,
 set up CloudWatch alarms for DLQ message counts, and implement a DLQ processor
 for handling or replaying failed messages.
+
+### Extraction Module
+
+For details on the Procore daily report format used for extraction patterns, see
+[docs/procore-daily-report-format.md](docs/procore-daily-report-format.md).
+
+#### Hybrid Extraction Strategy
+
+**Decision:** Use structured parsing (regex patterns) as primary extraction method,
+with LLM fallback for ambiguous content and LLM-based conflict detection.
+
+**Justification:**
+- Procore daily reports have consistent section headers and formatting
+- Structured extraction provides deterministic results for well-formatted content
+- LLM is invoked only when patterns don't match cleanly (cost/latency optimization)
+- LLM adds value for conflict detection across extracted sections
+
+**Production consideration:** Refine regex patterns based on actual Procore PDF
+samples. Consider externalizing patterns for easier updates without code changes.
+
+#### Interval-Based SQS Polling
+
+**Decision:** Use @nestjs/schedule with @Interval decorator for SQS message polling.
+
+**Justification:**
+- Simple, NestJS-native approach
+- Auto-starts on module initialization
+- Easy to configure polling frequency
+
+**Production consideration:** Use long-polling with ReceiveMessage WaitTimeSeconds
+for efficiency, or use AWS Lambda with SQS trigger for serverless scaling.
+
+#### Sequential Message Processing
+
+**Decision:** Process one message at a time within each polling interval.
+
+**Justification:**
+- Simpler error handling and status management
+- Prevents overwhelming local resources
+
+**Production consideration:** Implement batch processing with concurrency controls,
+or use horizontal scaling with multiple consumer instances.
+
+#### Self-Contained S3 Client
+
+**Decision:** Extraction module maintains its own S3 client for downloading PDFs
+rather than sharing with the ingestion module.
+
+**Justification:**
+- Keeps extraction module independent and self-contained
+- Avoids circular dependencies between modules
+- Follows same configuration patterns as other services
+
+**Production consideration:** Extract S3 client to a shared infrastructure module
+to reduce duplication and centralize AWS configuration.
+
+#### LLM Conflict Detection
+
+**Decision:** Use LLM to validate extracted data for inconsistencies in addition
+to programmatic checks.
+
+**Justification:**
+- Catches semantic conflicts that programmatic checks can't detect
+  (e.g., weather notes contradicting conditions)
+- Adds validation layer without complex rule engines
+- Demonstrates AI-assisted data quality
+
+**Programmatic checks:**
+- Manpower total vs sum of crew counts
+
+**LLM-detected conflicts:**
+- Weather notes contradicting conditions
+- Work area status inconsistencies
+- Cross-section logical conflicts
+
+**Production consideration:** Consider caching LLM responses, implementing rate
+limiting, and adding retry logic with exponential backoff.
