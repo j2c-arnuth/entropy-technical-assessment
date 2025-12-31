@@ -1,6 +1,23 @@
 # Daily Report Service
 
-NestJS service that processes Procore daily report PDFs.
+A NestJS microservice that ingests Procore daily report PDFs, stores them with metadata, and extracts structured data using a hybrid parsing strategy.
+
+## Overview
+
+This service demonstrates a document processing pipeline with the following capabilities:
+
+- **PDF Ingestion**: Upload daily reports via REST API with automatic S3 storage and MongoDB metadata tracking
+- **Async Processing**: SQS-based message queue decouples ingestion from extraction for scalability
+- **Hybrid Extraction**: Combines deterministic regex parsing with LLM fallback for ambiguous content
+- **Conflict Detection**: LLM-powered validation identifies inconsistencies in extracted data
+- **Full Traceability**: Links extracted data back to source artifacts with status tracking
+
+**Architecture Highlights:**
+- Domain-driven module structure (ingestion, extraction, messaging, shared)
+- Interval-based SQS consumer with configurable polling
+- Mocked external dependencies for reliable testing (58 tests total)
+
+This implementation is scoped for technical assessment demonstration. Production considerations are documented throughout the codebase.
 
 ## Prerequisites
 
