@@ -18,7 +18,7 @@ The following choices establish the context for this coding exercise.
 
 ### Database
 
-PostgreSQL with TypeORM.
+MongoDB with Mongoose.
 
 ### File Storage
 

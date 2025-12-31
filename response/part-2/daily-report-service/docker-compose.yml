@@ -1,17 +1,15 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: daily-report-postgres
+  mongodb:
+    image: mongo:7
+    container_name: daily-report-mongodb
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: daily_reports
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: daily_reports
     ports:
-      - '5432:5432'
+      - '27017:27017'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongodb_data:/data/db
 
   localstack:
     image: localstack/localstack:latest
@@ -36,5 +34,5 @@ services:
       - ./elasticmq.conf:/opt/elasticmq.conf
 
 volumes:
-  postgres_data:
+  mongodb_data:
   localstack_data:
