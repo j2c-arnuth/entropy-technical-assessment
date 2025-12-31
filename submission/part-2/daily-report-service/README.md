@@ -1,6 +1,6 @@
 # Daily Report Service
 
-A NestJS microservice that ingests Procore daily report PDFs, stores them with metadata, and extracts structured data using a hybrid parsing strategy.
+A NestJS service that ingests Procore daily report PDFs, stores them with metadata, and extracts structured data using a hybrid parsing strategy.
 
 ## Overview
 
