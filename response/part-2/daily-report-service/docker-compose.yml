@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: daily-report-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: daily_reports
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  localstack:
+    image: localstack/localstack:latest
+    container_name: daily-report-localstack
+    environment:
+      SERVICES: s3
+      DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    ports:
+      - '4566:4566'
+    volumes:
+      - localstack_data:/var/lib/localstack
+
+  elasticmq:
+    image: softwaremill/elasticmq:latest
+    container_name: daily-report-elasticmq
+    ports:
+      - '9324:9324'
+      - '9325:9325'
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf
+
+volumes:
+  postgres_data:
+  localstack_data:
